@@ -35,16 +35,18 @@ $mongoDB = connect_mongo($mongo_host, $mongo_user, $mongo_passwd, $mongo_db);
 
 // CATEGORIES MIGRATIONS
 //select only parents category without erotic and hentay
-$catMysql = mysql_query("SELECT * FROM `categories` WHERE `cat_pid` = 0  AND `cat_id` NOT IN (25, 11)");
+$catMysql = mysql_query("SELECT * FROM `categories` WHERE `cat_id` NOT IN (25, 11)");
 $catMongo = $mongoDB->selectCollection('categories');
 while ($category = mysql_fetch_array($catMysql, MYSQL_ASSOC)) {
 
-    $category['name'] = $category['cat_ru'];
-    unset($category['cat_ru']);
-    $category['alias'] = $category['cat_en'];
-    unset($category['cat_en']);
+    $categoryMongo['name'] = $category['cat_ru'];
+    $categoryMongo['alias'] = $category['cat_en'];
 
-    $catMongo->insert(array_filter($category));
+      ($category['cat_id'] == 0) ?
+        $categoryMongo['cat_id'] = $category['cat_id']:
+        $categoryMongo['cat_id'] = $category['cat_pid'];
+
+    $catMongo->insert(array_filter($categoryMongo));
 }
 
 
@@ -79,15 +81,15 @@ foreach ($cursor as $obj) {
 }
 
 //prepare array indexes TAGs
-$catMongo = $mongoDB->selectCollection('categories');
-$cursor = $catMongo->find();
-$converterID = array();
+$tagMongo = $mongoDB->selectCollection('tags');
+$cursor = $tagMongo->find();
+$converterTAG = array();
 foreach ($cursor as $obj) {
-    if (isset($obj['cat_id']))
-        $converterID[$obj['cat_id']] = $obj['_id'];
+    if (isset($obj['cat_pid']))
+        $converterTAG[$obj['cat_pid']] = $obj['_id'];
 }
 
-$imgMysql = mysql_query("SELECT * FROM img");
+$imgMysql = mysql_query("SELECT * FROM img WHERE `cat_id` NOT IN (25,11)");
 $imgMongo = $mongoDB->selectCollection('wallpapers');
 
 while ($img = mysql_fetch_array($imgMysql, MYSQL_ASSOC)) {
@@ -98,7 +100,8 @@ while ($img = mysql_fetch_array($imgMysql, MYSQL_ASSOC)) {
     $img['createdAt'] = new MongoDate($img['time']);
     unset($img['time']);
     $img['user'] = new MongoId("50b626ea8ead0e683b000001");
-
+//    $img['tags'] = array($converterID[$img['cat_pid']]);
+//    unset($img['cat_pid']);
 
     $imgMongo->insert(array_filter($img));
 }
