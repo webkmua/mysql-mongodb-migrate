@@ -85,7 +85,7 @@ foreach ($cursor as $obj) {
 $users = $mongoDB->selectCollection('users');
 $user = $users->findOne(array('username' => 'admin'), array('_id'));
 
-$imgMysql = mysql_query("SELECT * FROM img WHERE `rank_count` > 3 AND `cat_id` NOT IN (25,11)");
+$imgMysql = mysql_query("SELECT * FROM img WHERE `rank_count` > 3 AND `author` = '' AND `cat_id` NOT IN (25,11)");
 $imgMongo = $mongoDB->selectCollection('wallpapers');
 $imgMongo->drop();
 
