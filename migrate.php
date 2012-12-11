@@ -37,37 +37,28 @@ $mongoDB = connect_mongo($mongo_host, $mongo_user, $mongo_passwd, $mongo_db);
 //select only parents category without erotic and hentay
 $catMysql = mysql_query("SELECT * FROM `categories` WHERE `cat_id` NOT IN (25, 11)");
 $catMongo = $mongoDB->selectCollection('categories');
-while ($category = mysql_fetch_array($catMysql, MYSQL_ASSOC)) {
-
-    $categoryMongo['name'] = $category['cat_ru'];
-    $categoryMongo['alias'] = $category['cat_en'];
-
-      ($category['cat_id'] == 0) ?
-        $categoryMongo['cat_id'] = $category['cat_id']:
-        $categoryMongo['cat_id'] = $category['cat_pid'];
-
-    $catMongo->insert(array_filter($categoryMongo));
-}
-
-
-
-
-//TAGS CREATION
-
-//select only child category
-$catMysql = mysql_query("SELECT * FROM `categories` WHERE `cat_pid` != 0");
 $tagMongo = $mongoDB->selectCollection('tags');
-while ($tags = mysql_fetch_array($catMysql, MYSQL_ASSOC)) {
+$ConverterCAT = array();
+while ($category = mysql_fetch_array($catMysql, MYSQL_ASSOC)) {
+      if ($category['cat_pid'] == 0) {
+          $categoryMongo['name'] = $category['cat_ru'];
+          $categoryMongo['alias'] = $category['cat_en'];
+          $categoryMongo['cat_id'] = $category['cat_id'];
+          $catMongo->insert(array_filter($categoryMongo));
 
-    $tag['name'] = $tags['cat_ru'];
-    $tag['alias'] = $tags['cat_en'];
-    $tag['cat_pid'] = $tags['cat_pid'];
+          $ConverterCAT[$category['cat_id']] = $category['cat_id'];
 
-    $tagMongo->insert(array_filter($tag));
+      } else {
+          $tag['name'] = $category['cat_ru'];
+          $tag['alias'] = $category['cat_en'];
+          $tag['cat_id'] = $category['cat_id'];
+
+          $tagMongo->insert(array_filter($tag));
+          unset($tag);
+
+          $ConverterCAT[$category['cat_id']] = $category['cat_pid'];
+      }
 }
-
-
-
 
 //IMG MIGRATION
 
@@ -85,23 +76,24 @@ $tagMongo = $mongoDB->selectCollection('tags');
 $cursor = $tagMongo->find();
 $converterTAG = array();
 foreach ($cursor as $obj) {
-    if (isset($obj['cat_pid']))
-        $converterTAG[$obj['cat_pid']] = $obj['_id'];
+    if (isset($obj['cat_id']))
+        $converterTAG[$obj['cat_id']] = $obj['_id'];
 }
 
-$imgMysql = mysql_query("SELECT * FROM img WHERE `cat_id` NOT IN (25,11)");
+$users = $mongoDB->selectCollection('users');
+$user = $users->findOne(array('username' => 'admin'), array('_id'));
+
+$imgMysql = mysql_query("SELECT * FROM img WHERE `rank_count` > 3 AND `cat_id` NOT IN (25,11)");
 $imgMongo = $mongoDB->selectCollection('wallpapers');
 
 while ($img = mysql_fetch_array($imgMysql, MYSQL_ASSOC)) {
-    $img['filename'] = $img['file_name'];
-    unset($img['file_name']);
-    $img['categories'] = array($converterID[$img['cat_id']]);
-    unset($img['cat_id']);
-    $img['createdAt'] = new MongoDate($img['time']);
-    unset($img['time']);
-    $img['user'] = new MongoId("50b626ea8ead0e683b000001");
-//    $img['tags'] = array($converterID[$img['cat_pid']]);
-//    unset($img['cat_pid']);
+    $MongoImg['filename'] = $img['file_name'];
+    $MongoImg['categories'] = array($converterID[$ConverterCAT[$img['cat_id']]]);
+    $MongoImg['createdAt'] = new MongoDate($img['time']);
+    $MongoImg['user'] = new MongoId($user['_id']);
+    if (isset($converterTAG[$img['cat_id']]))
+        $MongoImg['tags'] = array($converterTAG[$img['cat_id']]);
 
-    $imgMongo->insert(array_filter($img));
+    $imgMongo->insert(array_filter($MongoImg));
+    unset($MongoImg);
 }
