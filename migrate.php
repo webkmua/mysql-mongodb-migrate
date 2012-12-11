@@ -37,7 +37,9 @@ $mongoDB = connect_mongo($mongo_host, $mongo_user, $mongo_passwd, $mongo_db);
 //select only parents category without erotic and hentay
 $catMysql = mysql_query("SELECT * FROM `categories` WHERE `cat_id` NOT IN (25, 11)");
 $catMongo = $mongoDB->selectCollection('categories');
+$catMongo->drop();
 $tagMongo = $mongoDB->selectCollection('tags');
+$tagMongo->drop();
 $ConverterCAT = array();
 while ($category = mysql_fetch_array($catMysql, MYSQL_ASSOC)) {
       if ($category['cat_pid'] == 0) {
@@ -85,6 +87,7 @@ $user = $users->findOne(array('username' => 'admin'), array('_id'));
 
 $imgMysql = mysql_query("SELECT * FROM img WHERE `rank_count` > 3 AND `cat_id` NOT IN (25,11)");
 $imgMongo = $mongoDB->selectCollection('wallpapers');
+$imgMongo->drop();
 
 while ($img = mysql_fetch_array($imgMysql, MYSQL_ASSOC)) {
     $MongoImg['filename'] = $img['file_name'];
