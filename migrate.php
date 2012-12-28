@@ -103,3 +103,14 @@ while ($img = mysql_fetch_array($imgMysql, MYSQL_ASSOC)) {
     $imgMongo->insert(array_filter($MongoImg));
     unset($MongoImg);
 }
+
+// SUBSCRIBER MIGRATIONS
+$subMysql = mysql_query("SELECT * FROM `mailer`");
+$subMongo = $mongoDB->selectCollection('subscribers');
+$subMongo->drop();
+while ($subscriber = mysql_fetch_array($subMysql, MYSQL_ASSOC)) {
+    $subscriberMongo['email'] = $subscriber['email'];
+    $subscriberMongo['confirmed'] = true;
+    $subscriberMongo['categories'] = $subscriber['categories'];
+    $subMongo->insert(array_filter($subscriberMongo));
+}
