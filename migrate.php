@@ -46,6 +46,7 @@ while ($category = mysql_fetch_array($catMysql, MYSQL_ASSOC)) {
           $categoryMongo['name'] = $category['cat_ru'];
           $categoryMongo['alias'] = $category['cat_en'];
           $categoryMongo['cat_id'] = $category['cat_id'];
+          $categoryMongo['cat_pid'] = $category['cat_pid'];
           $catMongo->insert(array_filter($categoryMongo));
 
           $ConverterCAT[$category['cat_id']] = $category['cat_id'];
@@ -94,6 +95,8 @@ while ($img = mysql_fetch_array($imgMysql, MYSQL_ASSOC)) {
     $MongoImg['categories'] = array($converterID[$ConverterCAT[$img['cat_id']]]);
     $MongoImg['createdAt'] = new MongoDate($img['time']);
     $MongoImg['user'] = new MongoId($user['_id']);
+    $MongoImg['old_id'] = $img['img_id'];
+    $MongoImg['old_cat_id'] = $img['cat_id'];
     if (isset($converterTAG[$img['cat_id']]))
         $MongoImg['tags'] = array($converterTAG[$img['cat_id']]);
 
